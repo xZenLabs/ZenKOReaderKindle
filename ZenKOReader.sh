@@ -7,6 +7,7 @@
 
 set -u
 
+SCRIPT_VERSION="1.0.4"
 USB_ROOT="/mnt/us"
 KOREADER_SH="$USB_ROOT/koreader/koreader.sh"
 OTA_SERVER="https://ota.koreader.rocks/"
@@ -19,6 +20,7 @@ log() {
     echo "# ZenKOReader"
     echo "# $*"
     echo "############################################################"
+    screen_status "$*"
 }
 
 die() {
@@ -28,6 +30,26 @@ die() {
 
 have() {
     command -v "$1" >/dev/null 2>&1
+}
+
+screen_status() {
+    message="$1"
+
+    have eips || return
+
+    line1=$(printf '%s' "$message" | cut -c1-44)
+    line2=$(printf '%s' "$message" | cut -c45-88)
+    line3=$(printf '%s' "$message" | cut -c89-132)
+
+    eips -c >/dev/null 2>&1
+    eips -c >/dev/null 2>&1
+    eips 0 1 "################################################" >/dev/null 2>&1
+    eips 0 2 "#              ZENKOREADER INSTALL             #" >/dev/null 2>&1
+    eips 0 3 "################################################" >/dev/null 2>&1
+    eips 2 5 "$line1" >/dev/null 2>&1
+    [ -n "$line2" ] && eips 2 6 "$line2" >/dev/null 2>&1
+    [ -n "$line3" ] && eips 2 7 "$line3" >/dev/null 2>&1
+    eips 0 10 "Please wait. Do not exit." >/dev/null 2>&1
 }
 
 download_to() {
@@ -154,9 +176,12 @@ install_latest_koreader() {
     install_zen_ui_plugin "$tmp_dir"
 }
 
+log "Starting ZenKOReader v$SCRIPT_VERSION."
+
 if [ ! -f "$KOREADER_SH" ]; then
     install_latest_koreader
 fi
 
 [ -x "$KOREADER_SH" ] || chmod +x "$KOREADER_SH" 2>/dev/null || true
+log "Launching KOReader..."
 "$KOREADER_SH" --kual --framework_stop
