@@ -6,7 +6,7 @@
 
 set -u
 
-SCRIPT_VERSION="1.0.9"
+SCRIPT_VERSION="1.0.10"
 USB_ROOT="/mnt/us"
 LOG_FILE="$USB_ROOT/ZenKOReader.log"
 KOREADER_SH="$USB_ROOT/koreader/koreader.sh"
