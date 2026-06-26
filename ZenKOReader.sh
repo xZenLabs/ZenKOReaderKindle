@@ -205,10 +205,14 @@ install_latest_koreader() {
     install_zen_ui_plugin "$tmp_dir"
 }
 
-if [ ! -f "$KOREADER_SH" ]; then
-    log "Starting ZenKOReader v$SCRIPT_VERSION."
-    install_latest_koreader
+if [ -f "$KOREADER_SH" ]; then
+    [ -x "$KOREADER_SH" ] || chmod +x "$KOREADER_SH" 2>/dev/null || true
+    "$KOREADER_SH" --kual --framework_stop
+    exit $?
 fi
+
+log "Starting ZenKOReader v$SCRIPT_VERSION."
+install_latest_koreader
 
 [ -x "$KOREADER_SH" ] || chmod +x "$KOREADER_SH" 2>/dev/null || true
 "$KOREADER_SH" --kual --framework_stop
