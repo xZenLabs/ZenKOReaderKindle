@@ -11,7 +11,7 @@ on:
         required: false
 
 env:
-  SCRIPTLET: ZenReader.sh
+  SCRIPTLET: ZenKOReader.sh
 
 permissions:
   contents: write
