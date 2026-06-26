@@ -9,6 +9,10 @@ on:
       scriptlet:
         description: Scriptlet filename to release
         required: false
+      bump:
+        description: Version part to bump (patch, minor, major)
+        required: false
+        default: patch
 
 env:
   SCRIPTLET: ZenKOReader.sh
@@ -38,26 +42,58 @@ jobs:
           fi
           echo "name=$name" >> "$GITHUB_OUTPUT"
 
-      - name: Read version from scriptlet
+      - name: Bump version in scriptlet
         id: version
         run: |
-          ver=$(grep -m1 -E '^#[[:space:]]*Version:' "${{ steps.scriptlet.outputs.name }}" \
-            | sed -E 's/^#[[:space:]]*Version:[[:space:]]*//' \
+          file="${{ steps.scriptlet.outputs.name }}"
+
+          cur=$(grep -m1 -E '^SCRIPT_VERSION=' "$file" \
+            | sed -E 's/^SCRIPT_VERSION="?([^"]*)"?.*/\1/' \
             | tr -d '[:space:]')
-          if [ -z "$ver" ]; then
-            echo "::error::No '# Version:' line found in ${{ steps.scriptlet.outputs.name }}"
+          if [ -z "$cur" ]; then
+            echo "::error::No 'SCRIPT_VERSION=' line found in $file"
             exit 1
           fi
-          if ! echo "$ver" | grep -qE '^[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
-            echo "::error::Version '$ver' must be X.Y or X.Y.Z"
+          if ! echo "$cur" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Version '$cur' must be X.Y.Z"
             exit 1
           fi
-          next="v${ver}"
+
+          bump="${{ github.event.inputs.bump }}"
+          [ -z "$bump" ] && bump="patch"
+
+          major=$(echo "$cur" | cut -d. -f1)
+          minor=$(echo "$cur" | cut -d. -f2)
+          patch=$(echo "$cur" | cut -d. -f3)
+
+          case "$bump" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+            *) echo "::error::Unknown bump '$bump' (use patch, minor, major)"; exit 1 ;;
+          esac
+
+          new="${major}.${minor}.${patch}"
+          sed -i -E "s/^SCRIPT_VERSION=.*/SCRIPT_VERSION=\"${new}\"/" "$file"
+
+          next="v${new}"
           if git rev-parse "$next" >/dev/null 2>&1; then
-            echo "::error::Tag $next already exists. Bump '# Version:' in the scriptlet."
+            echo "::error::Tag $next already exists."
             exit 1
           fi
+          echo "version=$new" >> "$GITHUB_OUTPUT"
           echo "next=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Commit bumped version
+        run: |
+          file="${{ steps.scriptlet.outputs.name }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$file"
+          git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
+          git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        id: commit
 
       - name: Create release and upload scriptlet
         env:
@@ -66,5 +102,5 @@ jobs:
           gh release create "${{ steps.version.outputs.next }}" \
             "${{ steps.scriptlet.outputs.name }}" \
             --title "${{ steps.version.outputs.next }}" \
-            --target "${GITHUB_SHA}" \
+            --target "${{ steps.commit.outputs.sha }}" \
             --generate-notes
