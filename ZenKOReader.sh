@@ -9,6 +9,7 @@ set -u
 
 SCRIPT_VERSION="1.0.4"
 USB_ROOT="/mnt/us"
+LOG_FILE="$USB_ROOT/ZenKOReader.log"
 KOREADER_SH="$USB_ROOT/koreader/koreader.sh"
 OTA_SERVER="https://ota.koreader.rocks/"
 KO_CHANNEL="stable"
@@ -20,6 +21,7 @@ log() {
     echo "# ZenKOReader"
     echo "# $*"
     echo "############################################################"
+    write_log_file "$*"
     screen_status "$*"
 }
 
@@ -32,24 +34,44 @@ have() {
     command -v "$1" >/dev/null 2>&1
 }
 
+write_log_file() {
+    [ -d "$USB_ROOT" ] || return
+    [ -w "$USB_ROOT" ] || return
+
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "unknown-time")
+    echo "[$timestamp] ZenKOReader v$SCRIPT_VERSION: $*" >> "$LOG_FILE" 2>/dev/null || true
+}
+
+eips_bin() {
+    for bin in /usr/sbin/eips /usr/bin/eips /bin/eips; do
+        [ -x "$bin" ] && {
+            echo "$bin"
+            return 0
+        }
+    done
+
+    command -v eips 2>/dev/null && return 0
+    return 1
+}
+
 screen_status() {
     message="$1"
 
-    have eips || return
+    eips=$(eips_bin) || return
 
     line1=$(printf '%s' "$message" | cut -c1-44)
     line2=$(printf '%s' "$message" | cut -c45-88)
     line3=$(printf '%s' "$message" | cut -c89-132)
 
-    eips -c >/dev/null 2>&1
-    eips -c >/dev/null 2>&1
-    eips 0 1 "################################################" >/dev/null 2>&1
-    eips 0 2 "#              ZENKOREADER INSTALL             #" >/dev/null 2>&1
-    eips 0 3 "################################################" >/dev/null 2>&1
-    eips 2 5 "$line1" >/dev/null 2>&1
-    [ -n "$line2" ] && eips 2 6 "$line2" >/dev/null 2>&1
-    [ -n "$line3" ] && eips 2 7 "$line3" >/dev/null 2>&1
-    eips 0 10 "Please wait. Do not exit." >/dev/null 2>&1
+    "$eips" -c >/dev/null 2>&1
+    "$eips" -c >/dev/null 2>&1
+    "$eips" 0 1 "################################################" >/dev/null 2>&1
+    "$eips" 0 2 "#              ZENKOREADER INSTALL             #" >/dev/null 2>&1
+    "$eips" 0 3 "################################################" >/dev/null 2>&1
+    "$eips" 2 5 "$line1" >/dev/null 2>&1
+    [ -n "$line2" ] && "$eips" 2 6 "$line2" >/dev/null 2>&1
+    [ -n "$line3" ] && "$eips" 2 7 "$line3" >/dev/null 2>&1
+    "$eips" 0 10 "Please wait. Do not exit." >/dev/null 2>&1
 }
 
 download_to() {
