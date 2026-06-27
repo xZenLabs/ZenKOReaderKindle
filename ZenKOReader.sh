@@ -163,7 +163,7 @@ install_zen_ui_plugin() {
 
 install_zen_userpatch() {
     patches_dir="$USB_ROOT/koreader/patches"
-    patch_file="$patches_dir/1-zen-ui-suppress-startup-alerts.lua"
+    patch_file="$patches_dir/2-zen-ui-suppress-startup-alerts.lua"
 
     [ -f "$patch_file" ] && return
 
@@ -173,10 +173,11 @@ install_zen_userpatch() {
     cat > "$patch_file" <<'EOF' || die "Failed to write Zen UI userpatch."
 -- Zen UI - Surpress startup alerts
 -- Suppresses KOReader first-run dialogs: the quickstart guide and the color
--- rendering popup. This is a priority-1 userpatch, so it runs after
+-- rendering popup. This is a priority-2 (late) userpatch so it runs after
 -- G_reader_settings is loaded but before reader.lua evaluates the dialog
--- conditions. Each key is only set when absent, so an existing user choice is
--- left untouched.
+-- conditions. A priority-1 (early) patch runs too early -- G_reader_settings
+-- is still nil at that point. Each key is only set when absent, so an existing
+-- user choice is left untouched.
 if G_reader_settings then
     if not G_reader_settings:has("quickstart_shown_version") then
         G_reader_settings:saveSetting("quickstart_shown_version", 2021070000)
