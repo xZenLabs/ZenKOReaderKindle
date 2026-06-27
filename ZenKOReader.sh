@@ -165,6 +165,8 @@ install_zen_userpatch() {
     patches_dir="$USB_ROOT/koreader/patches"
     patch_file="$patches_dir/1-zen-ui-suppress-startup-alerts.lua"
 
+    [ -f "$patch_file" ] && return
+
     mkdir -p "$patches_dir" || die "Cannot create $patches_dir."
 
     log "Installing Zen UI userpatch to suppress startup alerts..."
@@ -232,6 +234,7 @@ install_latest_koreader() {
 }
 
 if [ -f "$KOREADER_SH" ]; then
+    install_zen_userpatch
     [ -x "$KOREADER_SH" ] || chmod +x "$KOREADER_SH" 2>/dev/null || true
     "$KOREADER_SH" --kual --framework_stop
     exit $?
