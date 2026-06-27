@@ -161,6 +161,25 @@ install_zen_ui_plugin() {
     log "Installed Zen UI plugin."
 }
 
+seed_koreader_settings() {
+    settings_file="$USB_ROOT/koreader/settings.reader.lua"
+
+    [ -f "$settings_file" ] && {
+        log "KOReader settings already present, leaving dialogs untouched."
+        return
+    }
+
+    log "Seeding KOReader settings to disable first-run dialogs..."
+    cat > "$settings_file" <<'EOF' || die "Failed to write KOReader settings."
+-- Seeded by ZenKOReader to suppress KOReader first-run dialogs.
+return {
+    ["quickstart_shown_version"] = 2021070000,
+    ["color_rendering"] = true,
+}
+EOF
+    log "Disabled quickstart guide and color popup."
+}
+
 install_latest_koreader() {
     [ -d "$USB_ROOT" ] || die "$USB_ROOT is not available."
     have curl || die "curl is required to find and download KOReader."
@@ -201,6 +220,7 @@ install_latest_koreader() {
     [ -f "$KOREADER_SH" ] || die "KOReader launcher was not found after installation."
 
     log "Installed KOReader."
+    seed_koreader_settings
     install_zen_ui_plugin "$tmp_dir"
 }
 
