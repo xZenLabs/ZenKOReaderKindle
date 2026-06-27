@@ -161,23 +161,30 @@ install_zen_ui_plugin() {
     log "Installed Zen UI plugin."
 }
 
-seed_koreader_settings() {
-    settings_file="$USB_ROOT/koreader/settings.reader.lua"
+install_zen_userpatch() {
+    patches_dir="$USB_ROOT/koreader/patches"
+    patch_file="$patches_dir/1-zen-ui-suppress-startup-alerts.lua"
 
-    [ -f "$settings_file" ] && {
-        log "KOReader settings already present, leaving dialogs untouched."
-        return
-    }
+    mkdir -p "$patches_dir" || die "Cannot create $patches_dir."
 
-    log "Seeding KOReader settings to disable first-run dialogs..."
-    cat > "$settings_file" <<'EOF' || die "Failed to write KOReader settings."
--- Seeded by ZenKOReader to suppress KOReader first-run dialogs.
-return {
-    ["quickstart_shown_version"] = 2021070000,
-    ["color_rendering"] = true,
-}
+    log "Installing Zen UI userpatch to suppress startup alerts..."
+    cat > "$patch_file" <<'EOF' || die "Failed to write Zen UI userpatch."
+-- Zen UI - Surpress startup alerts
+-- Suppresses KOReader first-run dialogs: the quickstart guide and the color
+-- rendering popup. This is a priority-1 userpatch, so it runs after
+-- G_reader_settings is loaded but before reader.lua evaluates the dialog
+-- conditions. Each key is only set when absent, so an existing user choice is
+-- left untouched.
+if G_reader_settings then
+    if not G_reader_settings:has("quickstart_shown_version") then
+        G_reader_settings:saveSetting("quickstart_shown_version", 2021070000)
+    end
+    if not G_reader_settings:has("color_rendering") then
+        G_reader_settings:makeTrue("color_rendering")
+    end
+end
 EOF
-    log "Disabled quickstart guide and color popup."
+    log "Installed Zen UI startup-alert userpatch."
 }
 
 install_latest_koreader() {
@@ -220,7 +227,7 @@ install_latest_koreader() {
     [ -f "$KOREADER_SH" ] || die "KOReader launcher was not found after installation."
 
     log "Installed KOReader."
-    seed_koreader_settings
+    install_zen_userpatch
     install_zen_ui_plugin "$tmp_dir"
 }
 
