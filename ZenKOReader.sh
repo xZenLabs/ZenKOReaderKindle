@@ -162,15 +162,19 @@ install_zen_ui_plugin() {
 }
 
 install_zen_userpatch() {
+    # Pass "quiet" to install without touching the screen or log file. Used on
+    # the fast path when KOReader is already installed, so a returning user just
+    # sees KOReader open instead of the install splash.
+    quiet="${1:-}"
     patches_dir="$USB_ROOT/koreader/patches"
     patch_file="$patches_dir/2-zen-ui-suppress-startup-alerts.lua"
 
     [ -f "$patch_file" ] && return
 
-    mkdir -p "$patches_dir" || die "Cannot create $patches_dir."
+    mkdir -p "$patches_dir" || { [ "$quiet" = "quiet" ] && return 1; die "Cannot create $patches_dir."; }
 
-    log "Installing Zen UI userpatch to suppress startup alerts..."
-    cat > "$patch_file" <<'EOF' || die "Failed to write Zen UI userpatch."
+    [ "$quiet" = "quiet" ] || log "Installing Zen UI userpatch to suppress startup alerts..."
+    cat > "$patch_file" <<'EOF' || { [ "$quiet" = "quiet" ] && return 1; die "Failed to write Zen UI userpatch."; }
 -- Zen UI - Surpress startup alerts
 -- Suppresses KOReader first-run dialogs: the quickstart guide and the color
 -- rendering popup. This is a priority-2 (late) userpatch so it runs after
@@ -192,7 +196,7 @@ if G_reader_settings then
     end
 end
 EOF
-    log "Installed Zen UI startup-alert userpatch."
+    [ "$quiet" = "quiet" ] || log "Installed Zen UI startup-alert userpatch."
 }
 
 install_latest_koreader() {
@@ -240,7 +244,7 @@ install_latest_koreader() {
 }
 
 if [ -f "$KOREADER_SH" ]; then
-    install_zen_userpatch
+    install_zen_userpatch quiet
     [ -x "$KOREADER_SH" ] || chmod +x "$KOREADER_SH" 2>/dev/null || true
     "$KOREADER_SH" --kual --framework_stop
     exit $?
